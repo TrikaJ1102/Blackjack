@@ -1,132 +1,144 @@
-print(''' _     _            _    _            _
+import random
+
+# Constants
+CHIPS = [1, 5, 25, 50, 100]
+STARTING_BALANCE = 1000
+
+# ASCII Art
+def show_logo():
+    print(''' _     _            _    _            _
 | |   | |          | |  (_)          | |
 | |__ | | __ _  ___| | ___  __ _  ___| | __
 | '_ \| |/ _` |/ __| |/ / |/ _` |/ __| |/ /
 | |_) | | (_| | (__|   <| | (_| | (__|   <
-|_.__/|_|\__,_|\___|_|\_\ |\__,_|\___|_|\_\
+|_.__/|_|\__,_|\___|_|\_\ |\__,_|\___|_|\_\\
                        _/ |
                       |__/                ''')
-print('''                            _
+    print('''                            _
        ,'`.    _  _    /\    _(_)_
       (_,._)  ( `' )  <  >  (_)+(_)
         /\     `.,'    \/      |''')
 
+# Card Functions
+def create_deck():
+    base_cards = [(2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6'), (7, '7'), (8, '8'), (9, '9'),
+                  (10, '10'), (10, 'J'), (10, 'Q'), (10, 'K'), (11, 'A')]
+    return base_cards * 4
 
-
-import random
-
-def hit(hand_cards):
-    while True:
-        ncard = deck.pop()
-        print(f"You drew: {ncard[1]}, (value:{ncard[0]})")
-        hand_cards.append(ncard)
-        total = calculation(hand_cards)
-        print(f"Total Value: {total}")
-
-        if total > 21:
-            print("BUST!")
-            return  # Exit hit if busted
-
-        choice = input("Hit or Stand? ").lower()
-        if choice == "stand":
-            stand()
-            return  # Exit hit if player stands
-
-def stand():
-    global balance
-    while calculation(dealer_cards) < 17:
-        ncard = deck.pop()
-        print(f"Dealer drew {ncard[1]}, (value{ncard[0]})")
-        dealer_cards.append(ncard)
-
-    player_total = calculation(hand_cards)
-    dealer_total = calculation(dealer_cards)
-
-    print(f"\nYour final total: {player_total}")
-    print(f"Dealers' final total: {dealer_total}")
-
-    if player_total > 21:
-        print("You Busted! Dealer wins.")
-    elif dealer_total > 21:
-        print("You win!")
-    elif player_total < dealer_total <= 21:
-        print("Dealer wins")
-    elif player_total == dealer_total:
-        print("It's a tie!")
-
-def calculation(hand_cards):
-    total = 0
-    ace = 0
-    for card in hand_cards:
-        total += card[0]
-        if card[1] == "A":
-            ace += 1
-
-    while total > 21 and ace > 0:
+def calculate_total(hand):
+    total = sum(card[0] for card in hand)
+    aces = sum(1 for card in hand if card[1] == 'A')
+    while total > 21 and aces:
         total -= 10
-        ace -= 1
+        aces -= 1
     return total
 
-balance = 1000
+def display_hand(hand, owner="Player"):
+    cards = ', '.join(f"{card[1]}({card[0]})" for card in hand)
+    print(f"{owner}'s Hand: {cards} | Total: {calculate_total(hand)}")
 
-while True:
-    cards = [(2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6'), (7, '7'), (8, '8'), (9, '9'),
-             (10, '10'), (10, 'J'), (10, 'Q'), (10, 'K'), (11, 'A')]
-    deck = cards * 4
-    random.shuffle(deck)
-
-    card1 = deck.pop()
-    card2 = deck.pop()
-    dcard1 = deck.pop()
-    dcard2 = deck.pop()
-
-    hand_cards = [card1, card2]
-    dealer_cards = [dcard1, dcard2]
-
+def get_bet(balance):
     print(f"\nBank Balance: ${balance}")
     print("Available chips: 1 | 5 | 25 | 50 | 100")
-
-    betting = input("ALL IN or choose bet amount (press yes): ")
     bet = 0
 
-    if betting.lower() == "all in":
-        bet = balance
-        print(f"You went all in with ${balance}!")
-    else:
-        bet = int(input("Place your bet (select one chip): "))
-        addBet = input("Do you want to add more chips? y/n: ").lower()
+    choice = input("ALL IN or choose bet amount? ").lower()
+    if choice == "all in":
+        print(f"You went ALL IN with ${balance}!")
+        return balance
 
-        while addBet == "y":
-            add = int(input("Place your bet (select one chip): "))
-            bet += add
-            addBet = input("Do you want to add more chips? y/n: ").lower()
+    while True:
+        try:
+            chip = int(input("Place your bet (select one chip): "))
+            if chip in CHIPS and chip <= balance:
+                bet += chip
+                balance -= chip
+                more = input("Add more chips? (y/n): ").lower()
+                if more != 'y':
+                    break
+            else:
+                print("Invalid chip or over your balance.")
+        except ValueError:
+            print("Please enter a number.")
+    return bet
 
-    print(f"Total bet placed: ${bet}")
+def player_turn(deck, hand):
+    while True:
+        display_hand(hand)
+        if calculate_total(hand) > 21:
+            print("BUST!")
+            return False
+        choice = input("Hit or Stand? ").lower()
+        if choice == 'hit':
+            hand.append(deck.pop())
+        elif choice == 'stand':
+            return True
+        else:
+            print("Please enter 'hit' or 'stand'.")
 
-    print(f"You drew: {card1[1]}, (value:{card1[0]}) and {card2[1]}, (value:{card2[0]})")
-    print(f"Dealer drew: {dcard1[1]}, (value:{dcard1[0]}) and a facedown card.")
+def dealer_turn(deck, hand):
+    print("\nDealer's turn:")
+    display_hand(hand, "Dealer")
+    while calculate_total(hand) < 17:
+        new_card = deck.pop()
+        hand.append(new_card)
+        print(f"Dealer drew {new_card[1]} ({new_card[0]})")
+    display_hand(hand, "Dealer")
 
-    choice = input("Hit or Stand? ").lower()
-    if choice == "hit":
-        hit(hand_cards)
-    else:
-        stand()
+def determine_winner(player_hand, dealer_hand, bet, balance):
+    player_total = calculate_total(player_hand)
+    dealer_total = calculate_total(dealer_hand)
 
-    # Determine winner and update balance
-    player_total = calculation(hand_cards)
-    dealer_total = calculation(dealer_cards)
+    print(f"\nFinal Results:")
+    display_hand(player_hand, "Player")
+    display_hand(dealer_hand, "Dealer")
 
     if player_total > 21:
-        balance -= bet
+        print("You busted. Dealer wins.")
+        return balance - bet
     elif dealer_total > 21 or player_total > dealer_total:
-        print(f"You won ${bet}!")
+        print(f"You win! You gained ${bet}.")
+        return balance + bet
     elif player_total < dealer_total:
-        balance -= bet
+        print("Dealer wins.")
+        return balance - bet
+    else:
+        print("It's a tie!")
+        return balance  # No change
 
-    if balance == 0:
-        print("Uh oh, Table won! You're out of money.")
-        break
+# Game Loop
+def play_game():
+    balance = STARTING_BALANCE
+    show_logo()
 
-    game = input("Do you want to play again? (y/n): ").lower()
-    if game != "y":
-        break
+    while balance > 0:
+        deck = create_deck()
+        random.shuffle(deck)
+
+        player_hand = [deck.pop(), deck.pop()]
+        dealer_hand = [deck.pop(), deck.pop()]
+
+        bet = get_bet(balance)
+
+        print(f"\nYour cards: {player_hand[0][1]}({player_hand[0][0]}), {player_hand[1][1]}({player_hand[1][0]})")
+        print(f"Dealer shows: {dealer_hand[0][1]}({dealer_hand[0][0]}), [Hidden Card]")
+
+        if not player_turn(deck, player_hand):
+            balance -= bet
+        else:
+            dealer_turn(deck, dealer_hand)
+            balance = determine_winner(player_hand, dealer_hand, bet, balance)
+
+        print(f"\nYour current balance: ${balance}")
+        if balance <= 0:
+            print("You're out of money! Game over.")
+            break
+
+        again = input("Play another round? (y/n): ").lower()
+        if again != 'y':
+            print("Thanks for playing!")
+            break
+
+# Start the game
+if __name__ == "__main__":
+    play_game()
